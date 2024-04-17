@@ -20,11 +20,20 @@ def get_rating(isbn):
     isbn_url = f'https://openlibrary.org/isbn/{isbn}.json'
     isbn_response = requests.get(isbn_url)
     if isbn_response.status_code == 200:
-        works_key = isbn_response["works"]["key"]
+        isbn_dict = isbn_response.json()
+        print(type(isbn_dict))
+        works_key = isbn_dict["works"][0]["key"]
+        print(works_key)
+        works_id_list = works_key.split("/")
+        works_id = works_id_list[-1]
+        print(works_id)
 
-        works_url = f'https://openlibrary.org/works/{works_key}/ratings.json'
+        works_url = f'https://openlibrary.org/works/{works_id}/ratings.json'
         works_response = requests.get(works_url)
         if works_response.status_code == 200:
-            return(float(works_response["average"]))
+            works_dict = works_response.json()
+            print(works_dict)
+            print(float(works_dict["summary"]["average"]))
+            return(float(works_dict["summary"]["average"]))
     else:
         return None
