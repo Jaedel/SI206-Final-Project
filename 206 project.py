@@ -53,20 +53,6 @@ def get_rating(isbn):
     else:
         return None       
     
-def nyt_isbn_rating():
-    count = 0
-    while count < 101:
-        nyt_dict = new_api_key()
-        for item in new_api_key():
-        
-            if get_rating(item) == None:
-                continue
-            else:
-                rating = get_rating(item)
-                nyt_dict[item].append(rating)
-                count += 1
-        
-    return nyt_dict
 
 def new_rating_function():
     count = 0
@@ -82,13 +68,30 @@ def new_rating_function():
                 if rating == None:
                     continue
                 else:
-                    rating_dict[item] = rating
+                    get_values = nyt_dict.get(item)
+                    rating_dict[item] = [get_values[0], get_values[1], get_values[2], rating]
                     count += 1
     return rating_dict
 
-new_data = new_rating_function()
-print("here", new_data)
-print(len(new_data.keys()))
+
+def set_up_database(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + db_name)
+    cur = conn.cursor()
+    return cur, conn
+
+def set_up_general_table(cur, conn):
+    data = new_rating_function()
+    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, publisher TEXT, rating REAL)')
+    for i in data:
+        isbn13 = i
+        title = data[i][0]
+        nyt_rank = data[i][1]
+        publisher = data[i][2]
+        rating = data[i][3]
+        cur.execute('INSERT INTO Books(isbn13, title, nyt_rank, publisher, rating) VALUES (?,?,?,?.?)', (isbn13, title, nyt_rank, publisher, rating))
+
+    conn.commit()
 
 #data = new_rating_function()
 #print(data)
