@@ -43,13 +43,15 @@ def get_rating(isbn):
         works_response = requests.get(works_url)
         if works_response.status_code == 200:
             works_dict = works_response.json()
-            if works_dict["summary"]["average"] == True:
-                return(float(works_dict["summary"]["average"]))
-            else:
+            rating = works_dict["summary"]["average"]
+            if rating is None:
                 return None
-            
+            else:
+                return float(rating)
+        else:
+            return None
     else:
-        return None
+        return None       
     
 def nyt_isbn_rating():
     count = 0
@@ -60,18 +62,36 @@ def nyt_isbn_rating():
             if get_rating(item) == None:
                 continue
             else:
-                if item in nyt_dict:
-                
-                    rating = get_rating(item)
-                    nyt_dict[item].append(rating)
-                    count += 1
+                rating = get_rating(item)
+                nyt_dict[item].append(rating)
+                count += 1
         
     return nyt_dict
 
+def new_rating_function():
+    count = 0
+    rating_dict = {}
+    while count < 101:
+        nyt_dict = new_api_key()
+        for item in nyt_dict:
+        
+            if item == None:
+                continue
+            else:
+                rating = get_rating(item)
+                if rating == None:
+                    continue
+                else:
+                    rating_dict[item] = rating
+                    count += 1
+    return rating_dict
 
+new_data = new_rating_function()
+print("here", new_data)
+print(len(new_data.keys()))
 
-data = nyt_isbn_rating()
-print("here", data)
+#data = new_rating_function()
+#print(data)
 
 # def get_isbn_numbers():
     # loop thru get book data and get isbn numbers for each book
