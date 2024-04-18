@@ -89,7 +89,7 @@ def set_up_general_table(cur, conn):
         nyt_rank = data[i][1]
         publisher = data[i][2]
         rating = data[i][3]
-        cur.execute('INSERT INTO Books(isbn13, title, nyt_rank, publisher, rating) VALUES (?,?,?,?.?)', (isbn13, title, nyt_rank, publisher, rating))
+        cur.execute('INSERT OR IGNORE INTO Books(isbn13, title, nyt_rank, publisher, rating) VALUES (?,?,?,?,?)', (isbn13, title, nyt_rank, publisher, rating))
 
     conn.commit()
 
