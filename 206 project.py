@@ -93,6 +93,11 @@ def set_up_general_table(cur, conn):
 
     conn.commit()
 
+cur, conn = set_up_database("Storage")
+set_up_general_table(cur, conn)
+conn.close()
+
+
 #data = new_rating_function()
 #print(data)
 
@@ -105,4 +110,3 @@ def set_up_general_table(cur, conn):
 # def set_up_database():
 
 # def create_table():
-
