@@ -56,7 +56,7 @@ def get_rating(isbn):
 
 def new_rating_function():
     count = 0
-    rating_dict = {}
+    rating_list = []
     while count < 101:
         nyt_dict = new_api_key()
         for item in nyt_dict:
@@ -69,33 +69,54 @@ def new_rating_function():
                     continue
                 else:
                     get_values = nyt_dict.get(item)
-                    rating_dict[item] = [get_values[0], get_values[1], get_values[2], rating]
+                    rating_list.append([item, get_values[0], get_values[1], get_values[2], rating])
                     count += 1
-    return rating_dict
+    return rating_list
 
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path + "/" + db_name)
     cur = conn.cursor()
+    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, publisher TEXT, rating REAL)')
     return cur, conn
 
-def set_up_general_table(cur, conn):
-    data = new_rating_function()
-    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, publisher TEXT, rating REAL)')
+def set_up_general_table(data, cur, conn):
+    # get most recent count of things in the database
+    # make api call but only take next 25 items to add to database
     for i in data:
-        isbn13 = i
-        title = data[i][0]
-        nyt_rank = data[i][1]
-        publisher = data[i][2]
-        rating = data[i][3]
+        isbn13 = i[0]
+        title = i[1]
+        nyt_rank = i[2]
+        publisher = i[3]
+        rating = i[4]
         cur.execute('INSERT OR IGNORE INTO Books(isbn13, title, nyt_rank, publisher, rating) VALUES (?,?,?,?,?)', (isbn13, title, nyt_rank, publisher, rating))
 
     conn.commit()
 
-cur, conn = set_up_database("Storage")
-set_up_general_table(cur, conn)
-conn.close()
+
+
+def main():
+    cur, conn = set_up_database("Storage")
+    data = new_rating_function()
+    book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
+    if book_count < 1:
+        first_25 = data[:25]
+        set_up_general_table(first_25, cur, conn)
+    elif book_count < 26:
+        next_25 = data[25:50]
+        set_up_general_table(next_25, cur, conn)
+    elif book_count < 51:
+        third_25 = data[50:75]
+        set_up_general_table(third_25, cur, conn)
+    elif book_count < 76:
+        last_25 = data[75:100]
+        set_up_general_table(last_25, cur, conn)
+
+    conn.close()
+
+main()
+
 
 
 #data = new_rating_function()
