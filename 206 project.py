@@ -104,13 +104,13 @@ def main():
         first_25 = data[:25]
         set_up_general_table(first_25, cur, conn)
     elif book_count < 26:
-        next_25 = data[25:50]
+        next_25 = data[25:51]
         set_up_general_table(next_25, cur, conn)
     elif book_count < 51:
-        third_25 = data[50:75]
+        third_25 = data[51:76]
         set_up_general_table(third_25, cur, conn)
     elif book_count < 76:
-        last_25 = data[75:100]
+        last_25 = data[76:101]
         set_up_general_table(last_25, cur, conn)
 
     conn.close()
