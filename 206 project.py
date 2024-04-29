@@ -97,13 +97,13 @@ def set_up_tables(data, cur, conn):
 
 def analyze_data(cur, conn):
     cur.execute("ALTER TABLE Books ADD COLUMN new_rating REAL")
-    rows = cur.execute("SELECT nyt_rank, rating FROM Books").fetchall()
+    rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
     for row in rows:
-        nyt_rank = row[0]
-        rating = row[1]
+        nyt_rank = row[1]
+        rating = row[2]
         new_rating = nyt_rank + rating
-        print(new_rating)
-        cur.execute("INSERT INTO Books(new_rating) VALUES (?)", (new_rating,))
+        isbn13 = row[0]
+        cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 == ?", (new_rating, isbn13))
     conn.commit()
 
 def main():
