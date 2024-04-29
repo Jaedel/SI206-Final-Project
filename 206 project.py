@@ -55,22 +55,19 @@ def get_rating(isbn):
     
 
 def new_rating_function():
-    count = 0
     rating_list = []
-    while count < 101:
-        nyt_dict = new_api_key()
-        for item in nyt_dict:
+    nyt_dict = new_api_key()
+    for item in nyt_dict:
         
-            if item == None:
+        if item == None:
+            continue
+        else:
+            rating = get_rating(item)
+            if rating == None:
                 continue
             else:
-                rating = get_rating(item)
-                if rating == None:
-                    continue
-                else:
-                    get_values = nyt_dict.get(item)
-                    rating_list.append([item, get_values[0], get_values[1], get_values[2], rating])
-                    count += 1
+                get_values = nyt_dict.get(item)
+                rating_list.append([item, get_values[0], get_values[1], get_values[2], rating])
     return rating_list
 
 
@@ -78,40 +75,46 @@ def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path + "/" + db_name)
     cur = conn.cursor()
-    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, publisher TEXT, rating REAL)')
+    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, rating REAL)')
+    cur.execute('CREATE TABLE IF NOT EXISTS Publishers (isbn13 INTEGER PRIMARY KEY, pub_name TEXT)')
     return cur, conn
 
-def set_up_general_table(data, cur, conn):
+
+def set_up_tables(data, cur, conn):
     # get most recent count of things in the database
     # make api call but only take next 25 items to add to database
     for i in data:
         isbn13 = i[0]
         title = i[1]
         nyt_rank = i[2]
-        publisher = i[3]
+        pub_name = i[3]
         rating = i[4]
-        cur.execute('INSERT OR IGNORE INTO Books(isbn13, title, nyt_rank, publisher, rating) VALUES (?,?,?,?,?)', (isbn13, title, nyt_rank, publisher, rating))
-
+        cur.execute('INSERT OR IGNORE INTO Books(isbn13, title, nyt_rank, rating) VALUES (?,?,?,?)', (isbn13, title, nyt_rank, rating))
+        cur.execute('INSERT OR IGNORE INTO Publishers(isbn13, pub_name) VALUES (?,?)', (isbn13, pub_name))
     conn.commit()
 
+def analyze_data():
+    
 
 
 def main():
     cur, conn = set_up_database("Storage")
     data = new_rating_function()
     book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
+
     if book_count < 1:
         first_25 = data[:25]
-        set_up_general_table(first_25, cur, conn)
+        set_up_tables(first_25, cur, conn)
+            # 
     elif book_count < 26:
         next_25 = data[25:51]
-        set_up_general_table(next_25, cur, conn)
+        set_up_tables(next_25, cur, conn)
     elif book_count < 51:
         third_25 = data[51:76]
-        set_up_general_table(third_25, cur, conn)
+        set_up_tables(third_25, cur, conn)
     elif book_count < 76:
         last_25 = data[76:101]
-        set_up_general_table(last_25, cur, conn)
+        set_up_tables(last_25, cur, conn)
 
     conn.close()
 
