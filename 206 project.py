@@ -95,6 +95,13 @@ def set_up_tables(data, cur, conn):
         cur.execute('INSERT OR IGNORE INTO Publishers(isbn13, pub_id) VALUES (?,?)', (isbn13, pub_id))
     conn.commit()
 
+def database_join(cur, conn):
+    rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
+    for row in rows:
+        pub_id = row[0]
+        rating = row[1]
+    conn.commit()
+
 def analyze_data(cur, conn):
     cur.execute("ALTER TABLE Books ADD COLUMN new_rating REAL")
     rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
@@ -102,9 +109,11 @@ def analyze_data(cur, conn):
         nyt_rank = row[1]
         rating = row[2]
         new_rating = nyt_rank + rating
+        print(new_rating)
         isbn13 = row[0]
-        cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 == ?", (new_rating, isbn13))
+        cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
     conn.commit()
+    database_join(cur,conn)
 
 def main():
     cur, conn = set_up_database("Storage")
