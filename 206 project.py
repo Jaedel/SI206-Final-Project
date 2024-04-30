@@ -10,13 +10,30 @@ NYT_API_KEY = 'Y4YC23d1jbw0W2Y9pu5NgxFWFm1Mrz8p'
 
 def new_api_key():
     '''
-    creates API request
+    This function makes a request to The New York Times
+    Bestsellers List for 4/1/22. The function then checks
+    and ensures that the response.status_code == 200 and 
+    loads the data as a json file. After, it loops through
+    the specific genre lists and finds information about the
+    isbn number, title, rank, and publisher for each book. 
+    To avoid duplicate titles, it adds each title to a title
+    dictionary and makes sure to only get information from a
+    book if the title isn’t already in the dictionary. This function
+    creates a publisher ID key by creating a publisher dictionary
+    and checking if the publisher is already in the dictionary.
+    The keys of this dictionary are the publisher name and the
+    values are a publisher id created by the publisher variable.
+    If the publisher name is already in the publisher dictionary,
+    it assigns the publisher id number value to the new_dict publisher
+    id value. If the publisher name is not already in the dictionary,
+    it adds it to the dictionary and increments publisher so that
+    there is a new publisher id that can be added as the value in new_dict. 
     INPUTS: 
-        title: ISBN of the book you're searching for 
+        none
 
     OUTPUTS: 
-        float with the rating OR None if the 
-        request was unsuccesful
+        new_dict: dictionary with primary isbn13 number as the key, and title,
+        rank on the NYT Bestsellers list, and publisher ID as the values
     '''
     new_dict = {}
     publisher_dict = {}
@@ -73,6 +90,28 @@ def get_rating(isbn):
     
 
 def new_rating_function():
+    '''
+    This function first gets all the data from the new_api_key()
+    function which returns a dictionary with isbn number as the 
+    key and title, rank on NYT Bestsellers list, and publisher id
+    as the values. It then loops through the keys of that dictionary
+    (which are the isbn numbers) and for each isbn number, it finds 
+    the Open Library rating using the get_rating() function. If the
+    isbn number provided by the new_api_key() function is ‘None’, do
+    not find the Open Library rating because it needs an isbn number
+    to work properly. Check to see if the isbn number has a corresponding
+    rating on Open Library, and if it does, create a list with isbn number,
+    book title, rank on NYT Bestsellers list, publisher if, and Open Library rating.
+    Add this list to the rating_list so that the output is a list of lists. 
+
+    INPUTS: 
+        none 
+
+    OUTPUTS: 
+        rating_list: list with isbn number, book title,
+        rank on New York Times Bestsellers list,
+        publisher id, and Open Library rating
+    '''
     rating_list = []
     nyt_dict = new_api_key()
     for item in nyt_dict:
@@ -111,37 +150,74 @@ def set_up_tables(data, cur, conn):
         cur.execute('INSERT OR IGNORE INTO Publishers(isbn13, pub_id) VALUES (?,?)', (isbn13, pub_id))
         conn.commit()
 
-def database_join(cur, conn):
-    rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
-    print(rows)
-    for row in rows:
-        pub_id = row[0]
-        rating = row[1]
-    conn.commit()
-    
 
 def analyze_first_data(cur, conn):
+    '''
+    This function adds a new column called new_rating to
+    the Books Table. Then it gets the isbn13, nyt_rank_ and rating
+    from the Books Table. For each isbn number, calculate a new rating
+    (called new_rating) which adds the nyt_rank and the rating from Open
+    Library. Then, for each isbn number, add the new_rating calculation to
+    the new_rating column in the Books Table. 
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    OUTPUTS: 
+        none
+    '''
     cur.execute("ALTER TABLE Books ADD COLUMN new_rating REAL")
     rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
     for row in rows:
         nyt_rank = row[1]
         rating = row[2]
-        new_rating = nyt_rank + rating
+        new_rating = rating - nyt_rank
         isbn13 = row[0]
         cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
     conn.commit()
 
 def analyze_data(cur, conn):
+    '''
+    This function gets the isbn13, nyt_rank_ and rating
+    from the Books Table. For each isbn number, calculate a new rating
+    (called new_rating) which adds the nyt_rank and the rating from Open
+    Library. Then, for each isbn number, add the new_rating calculation to
+    the new_rating column in the Books Table. 
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    OUTPUTS: 
+        none
+    '''
     rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
     for row in rows:
         nyt_rank = row[1]
         rating = row[2]
-        new_rating = nyt_rank + rating
+        new_rating = rating - nyt_rank
         isbn13 = row[0]
         cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
     conn.commit()
 
 def create_first_visualization(cur, conn):
+    '''
+    This function creates a bar chart that displays the
+    title and the new_rating for the Top 5 Books based on the new_rating
+    in our database. First, this function creates a title list and a rating list
+    for the x and y axes, respectively. It also creates a list for the widths
+    so that each width is 0.3. After, this function gets the title and new_rating
+    from the Books Table and these should be in descending order because that corresponds
+    the larger the r
+    and 
+
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    OUTPUTS: 
+        none
+    '''
+    
     title_list = []
     rating_list = []
     widths = [0.3, 0.3, 0.3, 0.3, 0.3]
@@ -171,7 +247,7 @@ def create_second_visualization(cur, conn):
     pub_dict = {}
     new_dict = {}
 
-    rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
+    rows = cur.execute('SELECT Publishers.pub_id, Books.new_rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
     for row in rows:
         pub_id = row[0]
         rating = row[1]
@@ -205,12 +281,13 @@ def create_second_visualization(cur, conn):
             break
 
     while axis_count < 51:
-        axis_count += 1
+        axis_count += 3
         x_tick_labels.append(axis_count)
 
     ax = plt.axes()
     plt.scatter(x_axis_list, y_axis_list) 
     ax.set_xticks(x_tick_labels)
+    plt.grid()
     plt.xlabel("Publisher ID") 
     plt.ylabel("New Ratings for Publisher's Books")  
     plt.title("New Rating Calculations for 5 Publishers") 
@@ -221,7 +298,6 @@ def create_second_visualization(cur, conn):
 
 def main():
     cur, conn = set_up_database("Storage")
-    database_join(cur, conn)
     data = new_rating_function()
     book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
     
