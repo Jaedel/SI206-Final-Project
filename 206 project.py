@@ -158,6 +158,23 @@ def create_first_visualization(cur, conn):
     plt.show()
     conn.close()
 
+def create_second_visualization(cur, conn):
+    pub_dict = {}
+    value_list = []
+
+    rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
+    print(rows)
+    for row in rows:
+        pub_id = row[0]
+        rating = row[1]
+        if pub_id in pub_dict.keys():
+            pub_dict[pub_id].append(rating)
+        else:
+            value_list = rating
+            pub_dict[pub_id] = value_list
+    
+    
+    conn.commit()
 
 def main():
     cur, conn = set_up_database("Storage")
