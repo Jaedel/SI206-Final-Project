@@ -100,7 +100,7 @@ def set_up_tables(data, cur, conn):
         rating = i[4]
         cur.execute('INSERT OR IGNORE INTO Books(isbn13, title, nyt_rank, rating) VALUES (?,?,?,?)', (isbn13, title, nyt_rank, rating))
         cur.execute('INSERT OR IGNORE INTO Publishers(isbn13, pub_id) VALUES (?,?)', (isbn13, pub_id))
-    conn.commit()
+        conn.commit()
 
 def database_join(cur, conn):
     rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
@@ -156,14 +156,14 @@ def create_first_visualization(cur, conn):
     plt.title("New Rating Calculation for Top 5 Books") 
     plt.savefig("barchart_newrating_and_title.png")
     plt.show()
-    conn.close()
+    conn.commit()
 
 def create_second_visualization(cur, conn):
     pub_dict = {}
     value_list = []
+    new_dict = {}
 
     rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
-    print(rows)
     for row in rows:
         pub_id = row[0]
         rating = row[1]
@@ -172,9 +172,40 @@ def create_second_visualization(cur, conn):
         else:
             value_list = rating
             pub_dict[pub_id] = value_list
-    
-    
+    print(pub_dict)
+
+    for pub in pub_dict.keys():
+        if len(pub_dict.get(pub)) > 2:
+            vals_of_pub = pub_dict[pub]
+            new_dict[pub] = vals_of_pub
+        else:
+            continue
+    print(new_dict)
+
+    count = 0
+
+    x_axis_list = []
+    y_axis_list = []
+
+    for i in new_dict.keys():
+        if count < 5:
+            count += 1
+            for val in new_dict.get(i):
+                x_axis_list.append(i)
+                individual_value = val
+                y_axis_list.append(individual_value)
+        else:
+            break
+    print(x_axis_list)
+    print(y_axis_list)
+    plt.scatter(x_axis_list, y_axis_list) 
+    plt.xlabel("Publisher ID") 
+    plt.ylabel("New Ratings for Publisher's Books")  
+    plt.title("New Rating Calculations for 5 Publishers") 
+    plt.savefig("scatterplot_newrating_and_publisher.png")
+    plt.show()
     conn.commit()
+
 
 def main():
     cur, conn = set_up_database("Storage")
@@ -202,6 +233,9 @@ def main():
 
     elif book_count < 101:
         create_first_visualization(cur, conn)
+        create_second_visualization(cur, conn)
+
+    conn.close()
 
 main()
 #data = new_rating_function()
