@@ -3,11 +3,13 @@ import sqlite3
 import json
 import os
 
+
 NYT_API_KEY = 'Y4YC23d1jbw0W2Y9pu5NgxFWFm1Mrz8p'
 
 def new_api_key():
     new_dict = {}
     publisher_dict = {}
+    title_dict = {}
     num_value = 0
     publisher = 0
     published_date = '2022-04-01'
@@ -16,11 +18,13 @@ def new_api_key():
         data = json.loads(response.text)
         for item in data["results"]["lists"]:
             for i in item["books"]:
-                if i["publisher"] not in publisher_dict.keys():
-                    num_value += 1
-                    publisher_dict[i["publisher"]] = num_value
-                publisher = publisher_dict[i["publisher"]]
-                new_dict[i["primary_isbn13"]] = [i["title"], i["rank"], publisher]
+                if i["title"] not in title_dict.keys():
+                    title_dict[i["title"]] = 1
+                    if i["publisher"] not in publisher_dict.keys():
+                        num_value += 1
+                        publisher_dict[i["publisher"]] = num_value
+                    publisher = publisher_dict[i["publisher"]]
+                    new_dict[i["primary_isbn13"]] = [i["title"], i["rank"], publisher]              
     return new_dict
 
 def get_rating(isbn):
@@ -78,13 +82,14 @@ def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path + "/" + db_name)
     cur = conn.cursor()
-    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT UNIQUE, nyt_rank INTEGER, rating REAL)')
+    cur.execute('CREATE TABLE IF NOT EXISTS Books (isbn13 INTEGER PRIMARY KEY, title TEXT, nyt_rank INTEGER, rating REAL)')
     cur.execute('CREATE TABLE IF NOT EXISTS Publishers (isbn13 INTEGER PRIMARY KEY, pub_id INTEGER)')
     return cur, conn
 
 def set_up_tables(data, cur, conn):
     # get most recent count of things in the database
     # make api call but only take next 25 items to add to database
+
     for i in data:
         isbn13 = i[0]
         title = i[1]
@@ -109,33 +114,37 @@ def analyze_data(cur, conn):
         nyt_rank = row[1]
         rating = row[2]
         new_rating = nyt_rank + rating
-        print(new_rating)
         isbn13 = row[0]
         cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
     conn.commit()
     database_join(cur,conn)
 
+
 def main():
     cur, conn = set_up_database("Storage")
     data = new_rating_function()
     book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
+    count = 0
 
-    if book_count < 1:
-        first_25 = data[:25]
-        set_up_tables(first_25, cur, conn)
-        analyze_data(cur, conn)
-    elif book_count < 26:
-        next_25 = data[25:51]
-        set_up_tables(next_25, cur, conn)
-    elif book_count < 51:
-        third_25 = data[51:76]
-        set_up_tables(third_25, cur, conn)
-    elif book_count < 76:
-        last_25 = data[76:101]
-        set_up_tables(last_25, cur, conn)
-
+    if count < 4:
+        if book_count < 1:
+            first_25 = data[:25]
+            set_up_tables(first_25, cur, conn)
+            count += 1
+        elif book_count < 26:
+            next_25 = data[25:50]
+            set_up_tables(next_25, cur, conn)
+            count += 1
+        elif book_count < 51:
+            third_25 = data[50:75]
+            set_up_tables(third_25, cur, conn)
+            count += 1
+        elif book_count < 76:
+            last_25 = data[75:100]
+            set_up_tables(last_25, cur, conn)
+            count += 1
+    analyze_data(cur, conn)
     conn.close()
-
 
 main()
 
