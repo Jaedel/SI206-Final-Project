@@ -57,14 +57,20 @@ def new_api_key():
 
 def get_rating(isbn):
     '''
-    creates API request
-    INPUTS: 
+    This function makes a request to the Open Library API ISBN page for a specific book based on the ISBN number,
+    which is taken as an argumnet for this function. After ensuring the request is successfully stored to a variable,
+    it takes the works value from the json so that another request can be made to open up the works page for that same book.
+    From there it then ensures the request is successfully stored to a variable, stores the rating for the book by searching
+    through the JSON (first checking if it exists and returning None if it doesn't), and returns the rating as a float.
+
+    ARGUMENTS: 
         title: ISBN of the book you're searching for 
 
-    OUTPUTS: 
+    RETURNS: 
         float with the rating OR None if the 
         request was unsuccesful
     '''
+
 
     isbn_url = f'https://openlibrary.org/isbn/{isbn}.json'
     isbn_response = requests.get(isbn_url)
@@ -129,6 +135,18 @@ def new_rating_function():
 
 
 def set_up_database(db_name):
+    '''
+    This function establishes a path and file for the database using the name that is input as the argument.
+    This then creates the connection and cursor objects for the database. Afterwards, two tables are then created
+    so that data on Books can then be inserted into these tables for future calculations.
+    
+    ARGUMENTS: 
+        title: Name of the database 
+
+    RETURNS: 
+        The database's cursor and connection objects
+    '''
+    
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path + "/" + db_name)
     cur = conn.cursor()
@@ -137,8 +155,18 @@ def set_up_database(db_name):
     return cur, conn
 
 def set_up_tables(data, cur, conn):
-    # get most recent count of things in the database
-    # make api call but only take next 25 items to add to database
+    '''
+    This function takes the name of the database, cursor object for the database, and connection object for the database as arguments.
+    The function then loops through each row of the database and inserts data into two tables. The first table takes the following
+    values: isbn13, title, NYT rank, rating. The second table takes the following values: isbn13 and Publisher ID. The function also
+    commits this inserted data for each row each time the loop is run.
+    
+    ARGUMENTS: 
+        title: Name of the database, cursor object for the database, connection object for the database
+
+    RETURNS: 
+        No return
+    '''
 
     for i in data:
         isbn13 = i[0]
@@ -156,8 +184,8 @@ def analyze_first_data(cur, conn):
     This function adds a new column called new_rating to
     the Books Table. Then it gets the isbn13, nyt_rank_ and rating
     from the Books Table. For each isbn number, calculate a new rating
-    (called new_rating) which adds the nyt_rank and the rating from Open
-    Library. Then, for each isbn number, add the new_rating calculation to
+    (called new_rating) which subtracts the NYT_rank from Open
+    Library rating. Then, for each isbn number, add the new_rating calculation to
     the new_rating column in the Books Table. 
     INPUTS: 
         cur: cursor object for the database
@@ -180,9 +208,10 @@ def analyze_data(cur, conn):
     '''
     This function gets the isbn13, nyt_rank_ and rating
     from the Books Table. For each isbn number, calculate a new rating
-    (called new_rating) which adds the nyt_rank and the rating from Open
-    Library. Then, for each isbn number, add the new_rating calculation to
+    (called new_rating) which subtracts the NYT_rank from Open
+    Library rating. Then, for each isbn number, add the new_rating calculation to
     the new_rating column in the Books Table. 
+
     INPUTS: 
         cur: cursor object for the database
         conn: connection object for the database
@@ -205,10 +234,16 @@ def create_first_visualization(cur, conn):
     title and the new_rating for the Top 5 Books based on the new_rating
     in our database. First, this function creates a title list and a rating list
     for the x and y axes, respectively. It also creates a list for the widths
-    so that each width is 0.3. After, this function gets the title and new_rating
-    from the Books Table and these should be in descending order because that corresponds
-    the larger the r
-    and 
+    so that each width is 0.3 on the chart is 0.3. After, this function gets the title and
+    new_rating from the Books Table and these should be in descending order because the
+    larger the rating, the better the score is for our metric. Then, the function should
+    loop through each new_rating for its respective title and only add the title and
+    rating to the title_list and rating_list for the top 5 books. If the book title is longer
+    than 10 letters, only add a string with the first 10 letters and ‘..’ Create a bar chart
+    with the x label as ’Book Title (First 10 Letters) and y label as (New Rating
+    Calculation). The chart title should be ‘New Rating Calculation for Top 5 Books’)
+    And it should be saved as an image. 
+
 
     INPUTS: 
         cur: cursor object for the database
@@ -244,6 +279,55 @@ def create_first_visualization(cur, conn):
     conn.commit()
 
 def create_second_visualization(cur, conn):
+    '''
+    This function gets the isbn13, nyt_rank_ and rating
+    from the Books Table. For each isbn number, calculate a new rating
+    (called new_rating) which subtracts the NYT_rank from Open
+    Library rating. Then, for each isbn number, add the new_rating calculation to
+    the new_rating column in the Books Table. 
+
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    OUTPUTS: 
+        none
+    '''
+
+    rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
+    for row in rows:
+        nyt_rank = row[1]
+        rating = row[2]
+        new_rating = rating - nyt_rank
+        isbn13 = row[0]
+        cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
+    conn.commit()
+
+def create_first_visualization(cur, conn):
+    '''
+     This function creates a JOIN statement based on the isbn number for
+     each book in the Books and Publishers tables. It gets the publisher id
+     and new_rating for each isbn number. Then it loops through the publisher
+     id and rating for each book and checks if the publisher id is in the
+     pub_dict. If it is, it adds the new_rating to the list of values. If not,
+     it creates a new key in the pub_dict dictionary and assigns that rating as
+     a value which should be a list. Then it loops through the pub_dict dictionary
+     to determine which keys have values with lists greater than 2 items in the.
+     If the value for a specified key has more than 2 items, it adds that key and value
+     pair to a new dictionary called new_dict. then loop through the new_dict dictionary to create two
+     lists for the x and y axis. For each new_rating in the new_dict add the publisher id to the an axis
+     list and the new_rating to the y axis list (be sure to add the publisher id for each individual new_rating in the list).
+     Then, plot the x and y lists as a scatterplot using x label ‘New Ratings for Publisher’s Books’ and y label
+     ‘New Rating Calculations for 5 Publishers’. Make sure create a new list for x axis tick labels so that it
+     increments in counts of 3’s. Also, chart should be saved as an image. 
+
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    OUTPUTS: 
+        none
+    '''
     pub_dict = {}
     new_dict = {}
 
@@ -297,6 +381,23 @@ def create_second_visualization(cur, conn):
 
 
 def main():
+    '''
+    This function is the main function of the program where most other functions are called. It takes no arguments.
+    This function first creates the database, assigning it the name of "Storage" and assiging the cursor and connection
+    objects to variables. Next it calls the new_rating_function() to add the new ratings to the database, after which
+    it then stores this database to a variable called data. Following this, the current number of books within the Books
+    table is stored into a variable. Following this, data is inserted into the Books and Publishers tables within the
+    database, 25 books at a time. This is done by checking how many books are already added into the Books table, and
+    inserting data for the next 25 books based on that value. If the code is run and the book count is above 76 and
+    below 101 this means that the database has been populated with 100 items total, and so the visualizations are
+    then made. This is done by calling each function for each visualization. Lastly, this function always closes the connection object.
+    
+    ARGUMENTS: 
+        No arguments
+
+    RETURNS: 
+        No return
+    '''
     cur, conn = set_up_database("Storage")
     data = new_rating_function()
     book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
@@ -326,15 +427,3 @@ def main():
     conn.close()
 
 main()
-#data = new_rating_function()
-#print(data)
-
-# def get_isbn_numbers():
-    # loop thru get book data and get isbn numbers for each book
-
-# def get_open_library_book_data():
-    # get book data based on isbn numbers for nyt books
-
-# def set_up_database():
-
-# def create_table():
