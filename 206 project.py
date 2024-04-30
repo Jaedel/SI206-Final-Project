@@ -160,7 +160,6 @@ def create_first_visualization(cur, conn):
 
 def create_second_visualization(cur, conn):
     pub_dict = {}
-    value_list = []
     new_dict = {}
 
     rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
@@ -170,9 +169,7 @@ def create_second_visualization(cur, conn):
         if pub_id in pub_dict.keys():
             pub_dict[pub_id].append(rating)
         else:
-            value_list = rating
-            pub_dict[pub_id] = value_list
-    print(pub_dict)
+            pub_dict[pub_id] = [rating]
 
     for pub in pub_dict.keys():
         if len(pub_dict.get(pub)) > 2:
@@ -180,12 +177,13 @@ def create_second_visualization(cur, conn):
             new_dict[pub] = vals_of_pub
         else:
             continue
-    print(new_dict)
 
     count = 0
 
     x_axis_list = []
     y_axis_list = []
+    x_tick_labels = []
+    axis_count = 0
 
     for i in new_dict.keys():
         if count < 5:
@@ -196,9 +194,13 @@ def create_second_visualization(cur, conn):
                 y_axis_list.append(individual_value)
         else:
             break
-    print(x_axis_list)
-    print(y_axis_list)
+
+    while axis_count < 51:
+        axis_count += 1
+        x_tick_labels.append(axis_count)
+
     plt.scatter(x_axis_list, y_axis_list) 
+    plt.xticks(x_tick_labels)
     plt.xlabel("Publisher ID") 
     plt.ylabel("New Ratings for Publisher's Books")  
     plt.title("New Rating Calculations for 5 Publishers") 
