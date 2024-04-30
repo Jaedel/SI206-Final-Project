@@ -2,6 +2,8 @@ import requests
 import sqlite3
 import json
 import os
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 NYT_API_KEY = 'Y4YC23d1jbw0W2Y9pu5NgxFWFm1Mrz8p'
@@ -102,12 +104,14 @@ def set_up_tables(data, cur, conn):
 
 def database_join(cur, conn):
     rows = cur.execute('SELECT Publishers.pub_id, Books.rating FROM Publishers JOIN Books ON Publishers.isbn13 = Books.isbn13').fetchall()
+    print(rows)
     for row in rows:
         pub_id = row[0]
         rating = row[1]
     conn.commit()
+    
 
-def analyze_data(cur, conn):
+def analyze_first_data(cur, conn):
     cur.execute("ALTER TABLE Books ADD COLUMN new_rating REAL")
     rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
     for row in rows:
@@ -117,37 +121,72 @@ def analyze_data(cur, conn):
         isbn13 = row[0]
         cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
     conn.commit()
-    database_join(cur,conn)
+
+def analyze_data(cur, conn):
+    rows = cur.execute("SELECT isbn13, nyt_rank, rating FROM Books").fetchall()
+    for row in rows:
+        nyt_rank = row[1]
+        rating = row[2]
+        new_rating = nyt_rank + rating
+        isbn13 = row[0]
+        cur.execute("UPDATE Books SET new_rating = ? WHERE isbn13 = ?", (new_rating, isbn13))
+    conn.commit()
+
+def create_first_visualization(cur, conn):
+    title_list = []
+    rating_list = []
+    widths = [0.3, 0.3, 0.3, 0.3, 0.3]
+    items = cur.execute('SELECT title, new_rating FROM Books ORDER BY new_rating DESC').fetchall()
+    count = 0
+    for item in items:
+        if count < 5:
+            count += 1
+            book_title = item[0]
+            if len(book_title) > 10:
+                first_ten_characters = book_title[:11] + '..'
+                title_list.append(first_ten_characters)
+            else:
+                title_list.append(book_title)
+            rating_list.append(item[1])
+        else:
+            break
+    plt.bar(title_list, rating_list, color='red', width= widths) 
+    plt.xlabel("Book Title (First 10 Letters)") 
+    plt.ylabel("New Rating Calculation")  
+    plt.title("New Rating Calculation for Top 5 Books") 
+    plt.savefig("barchart_newrating_and_title.png")
+    plt.show()
+    conn.close()
 
 
 def main():
     cur, conn = set_up_database("Storage")
+    database_join(cur, conn)
     data = new_rating_function()
     book_count = cur.execute('SELECT COUNT (*) FROM Books').fetchall()[0][0]
-    count = 0
+    
 
-    if count < 4:
-        if book_count < 1:
-            first_25 = data[:25]
-            set_up_tables(first_25, cur, conn)
-            count += 1
-        elif book_count < 26:
-            next_25 = data[25:50]
-            set_up_tables(next_25, cur, conn)
-            count += 1
-        elif book_count < 51:
-            third_25 = data[50:75]
-            set_up_tables(third_25, cur, conn)
-            count += 1
-        elif book_count < 76:
-            last_25 = data[75:100]
-            set_up_tables(last_25, cur, conn)
-            count += 1
-    analyze_data(cur, conn)
-    conn.close()
+    if book_count < 1:
+        first_25 = data[:25]
+        set_up_tables(first_25, cur, conn)
+        analyze_first_data(cur, conn)
+    elif book_count < 26:
+        next_25 = data[25:50]
+        set_up_tables(next_25, cur, conn)
+        analyze_data(cur, conn)
+    elif book_count < 51:
+        third_25 = data[50:75]
+        set_up_tables(third_25, cur, conn)
+        analyze_data(cur, conn)
+    elif book_count < 76:
+        last_25 = data[75:100]
+        set_up_tables(last_25, cur, conn)
+        analyze_data(cur, conn)
+
+    elif book_count < 101:
+        create_first_visualization(cur, conn)
 
 main()
-
 #data = new_rating_function()
 #print(data)
 
