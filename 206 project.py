@@ -9,6 +9,15 @@ import matplotlib.pyplot as plt
 NYT_API_KEY = 'Y4YC23d1jbw0W2Y9pu5NgxFWFm1Mrz8p'
 
 def new_api_key():
+    '''
+    creates API request
+    INPUTS: 
+        title: ISBN of the book you're searching for 
+
+    OUTPUTS: 
+        float with the rating OR None if the 
+        request was unsuccesful
+    '''
     new_dict = {}
     publisher_dict = {}
     title_dict = {}
@@ -32,10 +41,10 @@ def new_api_key():
 def get_rating(isbn):
     '''
     creates API request
-    ARGUMENTS: 
+    INPUTS: 
         title: ISBN of the book you're searching for 
 
-    RETURNS: 
+    OUTPUTS: 
         float with the rating OR None if the 
         request was unsuccesful
     '''
@@ -199,8 +208,9 @@ def create_second_visualization(cur, conn):
         axis_count += 1
         x_tick_labels.append(axis_count)
 
+    ax = plt.axes()
     plt.scatter(x_axis_list, y_axis_list) 
-    plt.xticks(x_tick_labels)
+    ax.set_xticks(x_tick_labels)
     plt.xlabel("Publisher ID") 
     plt.ylabel("New Ratings for Publisher's Books")  
     plt.title("New Rating Calculations for 5 Publishers") 
