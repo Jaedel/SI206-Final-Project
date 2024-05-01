@@ -262,7 +262,33 @@ def create_third_visualization(cur, conn):
     plt.show()
     conn.commit()
     
+def write_file(cur, conn):
+    '''
+    This function's purpose is to write the calculated data to a file. First the function creates a
+    new empty string for all of the calculated data. The function then takes in the calculated
+    data, converts the data to into strings, and then adds them to the string that was first created.
+    This is done by looping through the column in the database that has all of the calculated data.
+    Then, the new file is created and all of the calculated data is written to this file.
 
+    INPUTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+
+    OUTPUTS: 
+        No outputs
+    '''
+
+    all_data = ""
+    rows = cur.execute('SELECT new_rating FROM Books').fetchall()
+    for rating in rows:
+        str_rating = str(rating)
+        all_data += str_rating
+        all_data += ", "
+    conn.commit()
+    
+    with open("Calculated Data.txt","w") as file:
+        file.write("[This line has all of the calculated data] " + all_data)
 
 def main():
     '''
@@ -308,6 +334,7 @@ def main():
         create_first_visualization(cur, conn)
         create_second_visualization(cur, conn)
         create_third_visualization(cur, conn)
+        write_file(cur, conn)
 
     conn.close()
 
