@@ -226,6 +226,43 @@ def create_second_visualization(cur, conn):
     plt.show()
     conn.commit()
 
+def create_third_visualization(cur, conn):
+    '''
+    This function selects the nyt_rank and the rating for
+    each book from the Books table. It then creates a scatterplot
+    with nyt_rank on the x axis and rating on the y_axis, and only plots 30 coordinates.
+    The x axis is labeled ’NYT Bestsellers Rank’ and the y axis is labeled ‘Open Library Rating’.
+    The chart title is ’NYT Bestsellers Rank vs Open Library Rating’ and the coordinates should be
+    the color ‘lime’. The chart should be saved as an image. 
+
+    ARGUMENTS: 
+        cur: cursor object for the database
+        conn: connection object for the database
+
+    RETURNS: 
+        none
+    '''
+    
+    nyt_rank_list = []
+    rating_list = []
+    items = cur.execute('SELECT nyt_rank, rating FROM Books').fetchall()
+    count = 0
+    for item in items:
+        if count < 30:
+            count += 1
+            nyt_rank_list.append(item[0])
+            rating_list.append(item[1])
+        else:
+            break
+    plt.scatter(nyt_rank_list, rating_list, color='lime') 
+    plt.xlabel("NYT Bestsellers Rank") 
+    plt.ylabel("Open Library Rating")  
+    plt.title("NYT Bestsellers Rank vs Open Library Rating") 
+    plt.savefig("scatterplot_newrating_and_ranking.png")
+    plt.show()
+    conn.commit()
+    
+
 
 def main():
     '''
@@ -270,6 +307,7 @@ def main():
     elif book_count < 101:
         create_first_visualization(cur, conn)
         create_second_visualization(cur, conn)
+        create_third_visualization(cur, conn)
 
     conn.close()
 
