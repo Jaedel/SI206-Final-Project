@@ -297,19 +297,13 @@ def create_second_visualization(cur, conn):
     conn.commit()
     return x_axis_list, y_axis_list
 
-def write_file(y1, y2, cur, conn):
+def write_file(cur, conn):
     '''
-    This function's purpose is to write the calculated data to a file. 
-    First the function creates new empty strings for the calculated data
-    that is displayed in each of the visualizations. It also creates a new
-    empty string for all of the calculated data. The function then takes in the calculated
-    data used in each visualization, converts the data to into strings, and then adds them
-    to the corresponding string that was first created. The function then does the same thing
-    but for all of the calculated data by looping through the column in the database that
-    has all of the calculated data. Afterwards, the calculated data from both visualizations
-    are combined into a single variable. Then, the new file is created and all of the
-    calculated data is written to this file, followed by only the calculated data that was
-    used in the visualizations.
+    This function's purpose is to write the calculated data to a file. First the function creates a
+    new empty string for all of the calculated data. The function then takes in the calculated
+    data, converts the data to into strings, and then adds them to the string that was first created.
+    This is done by looping through the column in the database that has all of the calculated data.
+    Then, the new file is created and all of the calculated data is written to this file.
 
     INPUTS: 
         y1: the calculated data that is in the y-axis of the first visualization
@@ -322,18 +316,7 @@ def write_file(y1, y2, cur, conn):
         No outputs
     '''
 
-    y1_string = ""
-    y2_string = ""
     all_data = ""
-    for y1val in y1:
-        y1val_string = str(y1val)
-        y1_string += y1val_string
-        y1_string += ", "
-    for y2val in y2:
-        y2val_string = str(y2val)
-        y2_string += y2val_string
-        y2_string += ", "
-    
     rows = cur.execute('SELECT new_rating FROM Books').fetchall()
     for rating in rows:
         str_rating = str(rating)
@@ -341,10 +324,8 @@ def write_file(y1, y2, cur, conn):
         all_data += ", "
     conn.commit()
     
-    both_data = "Y-axis data calculated for Visualization 1: " + y1_string + "Y-axis ratings data calculated for Visualization 2: " + y2_string
     with open("Calculated Data.txt","w") as file:
-        file.write("[This line has all of the calculated data]" + all_data + "\n")
-        file.write("[This line has only the calculated data that was displayed in the visualizations]" + both_data)
+        file.write("[This line has all of the calculated data] " + all_data + "\n")
 
 
 def main():
@@ -371,9 +352,9 @@ def main():
         analyze_data(cur, conn)
 
     elif book_count < 101:
-        visualization1_y_calculation = create_first_visualization(cur, conn)
-        visualization2_x_calculation, visualization2_y_calculation = create_second_visualization(cur, conn)
-        write_file(visualization1_y_calculation, visualization2_y_calculation, cur, conn)
+        create_first_visualization(cur, conn)
+        create_second_visualization(cur, conn)
+        write_file(cur, conn)
 
     conn.close()
 
